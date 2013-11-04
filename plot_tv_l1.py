@@ -778,11 +778,6 @@ if __name__ == '__main__':
     mem = Memory(None)
 
     if 0:
-        if 0:
-            ClfClass = TVL1RegressionCV
-        else:  # OR decouple fitting
-            ClfClass = TVL1RegressionCVFast
-
         clf = TVL1RegressionCV(shape=[size, size, size], alphas=alphas,
                     l1_ratio=l1_ratios, cv=3, n_jobs=-1,
                     max_iter=5000, verbose=True, memory=mem,
