@@ -11,7 +11,6 @@ from sklearn.externals.joblib import Parallel, delayed
 from . import _utils
 from ._utils.ndimage import largest_connected_component
 from ._utils.cache_mixin import cache
-from . import resampling
 
 
 def _load_mask_img(mask_img, allow_empty=False):
@@ -138,11 +137,11 @@ def compute_epi_mask(epi_img, lower_cutoff=0.2, upper_cutoff=0.9,
         resliced with a large padding of zeros.
 
     target_affine: 3x3 or 4x4 matrix, optional
-        This parameter is passed to resampling.resample_img. Please see the
+        This parameter is passed to image.resample_img. Please see the
         related documentation for details.
 
     target_shape: 3-tuple of integers, optional
-        This parameter is passed to resampling.resample_img. Please see the
+        This parameter is passed to image.resample_img. Please see the
         related documentation for details.
 
     memory: instance of joblib.Memory or string
@@ -160,13 +159,20 @@ def compute_epi_mask(epi_img, lower_cutoff=0.2, upper_cutoff=0.9,
     # We suppose that it is a niimg
     # XXX make a is_a_niimgs function ?
 
-    epi_img = cache(resampling.resample_img, memory, ignore=['copy'])(
+    # Delayed import to avoid circular imports
+    from . import image
+    input_repr = _utils._repr_niimgs(epi_img)
+    epi_img = cache(image.resample_img, memory, ignore=['copy'])(
                                 epi_img,
                                 target_affine=target_affine,
                                 target_shape=target_shape)
 
     epi_img = _utils.check_niimgs(epi_img, accept_3d=True)
     mean_epi = epi_img.get_data()
+    if not mean_epi.ndim in (3, 4):
+        raise ValueError('compute_epi_mask expects 3D or 4D '
+            'images, but %i dimensions were given (%s)'
+            % (mean_epi.ndim, input_repr))
     if mean_epi.ndim == 4:
         mean_epi = mean_epi.mean(axis=-1)
     if ensure_finite:
@@ -298,11 +304,11 @@ def compute_multi_epi_mask(epi_imgs, lower_cutoff=0.2, upper_cutoff=0.9,
         resliced with a large padding of zeros.
 
     target_affine: 3x3 or 4x4 matrix, optional
-        This parameter is passed to resampling.resample_img. Please see the
+        This parameter is passed to image.resample_img. Please see the
         related documentation for details.
 
     target_shape: 3-tuple of integers, optional
-        This parameter is passed to resampling.resample_img. Please see the
+        This parameter is passed to image.resample_img. Please see the
         related documentation for details.
 
     memory: instance of joblib.Memory or string
@@ -317,6 +323,9 @@ def compute_multi_epi_mask(epi_imgs, lower_cutoff=0.2, upper_cutoff=0.9,
     mask : 3D nifti-like image
         The brain mask.
     """
+    if len(epi_imgs) == 0:
+        raise TypeError('An empty object - %r - was passed instead of an '
+                        'image or a list of images' % epi_imgs)
     masks = Parallel(n_jobs=n_jobs, verbose=verbose)(
         delayed(compute_epi_mask)(epi_img,
                                   lower_cutoff=lower_cutoff,
@@ -398,7 +407,7 @@ def _apply_mask_fmri(niimgs, mask_img, dtype=np.float32,
     niimgs_img = _utils.check_niimgs(niimgs)
     affine = niimgs_img.get_affine()[:3, :3]
 
-    if not np.all(mask_affine == niimgs_img.get_affine()):
+    if not np.allclose(mask_affine, niimgs_img.get_affine()):
         raise ValueError('Mask affine: \n%s\n is different from img affine:'
                          '\n%s' % (str(mask_affine),
                                    str(niimgs_img.get_affine())))

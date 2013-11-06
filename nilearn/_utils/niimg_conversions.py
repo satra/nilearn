@@ -117,6 +117,9 @@ def check_niimg(niimg):
         # data is a filename, we load it
         result = nibabel.load(niimg)
     elif hasattr(niimg, "__iter__"):
+        if hasattr(niimg, "__len__") and len(niimg) == 0:
+            raise TypeError('An empty object - %r - was passed instead of an '
+                            'image or a list of images' % niimg)
         return concat_niimgs(niimg)
     else:
         # it is an object, it should have get_data and get_affine methods
@@ -192,7 +195,7 @@ def check_niimgs(niimgs, accept_3d=False):
         call nibabel.load on it. If it is an object, check if get_data
         and get_affine methods are present, raise an Exception otherwise.
 
-   accept_3d (boolean)
+    accept_3d (boolean)
        If True, consider a 3D image as a 4D one with last dimension equals
        to 1.
 
@@ -226,6 +229,9 @@ def check_niimgs(niimgs, accept_3d=False):
     # See http://bugs.python.org/issue7624
     while hasattr(first_img, "__iter__") \
             and not isinstance(first_img, basestring):
+        if hasattr(first_img, '__len__') and len(first_img) == 0:
+            raise TypeError('An empty object - %r - was passed instead of an '
+                            'image or a list of images' % niimgs)
         first_img = iter(first_img).next()
         depth += 1
 
@@ -233,14 +239,16 @@ def check_niimgs(niimgs, accept_3d=False):
     first_img = check_niimg(first_img)
 
     # Check dimension and depth
-    dim = len(_get_shape(first_img))
+    shape = _get_shape(first_img)
+    dim = len(shape)
 
     if (dim + depth) != 4:
         # Detailed error message that tells exactly the user what
         # was provided and what should have been provided.
         raise TypeError("Data must be either a 4D Nifti image or a"
                         " list of 3D Nifti images. You provided a %s%dD"
-                        " image(s)." % ('list of ' * depth, dim))
+                        " image(s), of shape." % ('list of ' * depth,
+                        dim, shape))
 
     # Now, we load data as we know its format
     if dim == 4:

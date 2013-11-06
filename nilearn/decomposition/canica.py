@@ -59,11 +59,11 @@ class CanICA(MultiPCA, CacheMixin):
         Pseudo number generator state used for random sampling.
 
     target_affine: 3x3 or 4x4 matrix, optional
-        This parameter is passed to resampling.resample_img. Please see the
+        This parameter is passed to image.resample_img. Please see the
         related documentation for details.
 
     target_shape: 3-tuple of integers, optional
-        This parameter is passed to resampling.resample_img. Please see the
+        This parameter is passed to image.resample_img. Please see the
         related documentation for details.
 
     low_pass: None or float, optional
@@ -148,12 +148,11 @@ class CanICA(MultiPCA, CacheMixin):
                 # random_state in fastica was added in 0.13
                 ica_maps_ = self._cache(fastica, memory_level=6)(
                     self.components_.T,
-                    whiten=False,
-                    fun='cube',
+                    whiten=True, fun='cube',
                     random_state=random_state)[2]
             else:
                 ica_maps_ = self._cache(fastica, memory_level=6)(
-                    self.components_.T, whiten=False,
+                    self.components_.T, whiten=True,
                     fun='cube')[2]
             ica_maps_ = ica_maps_.T
 

@@ -40,7 +40,7 @@ conditions = conditions[condition_mask]
 n_conditions = np.size(np.unique(y))
 
 ### Loading step ##############################################################
-from nilearn.io import NiftiMasker
+from nilearn.input_data import NiftiMasker
 from nibabel import Nifti1Image
 nifti_masker = NiftiMasker(mask=mask, sessions=session, smoothing_fwhm=4,
                            memory="nilearn_cache", memory_level=1)
@@ -77,11 +77,11 @@ y_pred = anova_svc.predict(X)
 ### Visualisation #############################################################
 
 ### Look at the discriminating weights
-svc = clf.support_vectors_
+coef = clf.coef_
 # reverse feature selection
-svc = feature_selection.inverse_transform(svc)
+coef = feature_selection.inverse_transform(coef)
 # reverse masking
-niimg = nifti_masker.inverse_transform(svc[0])
+niimg = nifti_masker.inverse_transform(coef)
 
 # We use a masked array so that the voxels at '-1' are displayed
 # transparently
@@ -93,7 +93,7 @@ pl.axis('off')
 pl.title('SVM vectors')
 pl.imshow(np.rot90(mean_img[..., 27]), cmap=pl.cm.gray,
           interpolation='nearest')
-pl.imshow(np.rot90(act[..., 27]), cmap=pl.cm.hot,
+pl.imshow(np.rot90(act[..., 27, 0]), cmap=pl.cm.hot,
           interpolation='nearest')
 pl.show()
 
