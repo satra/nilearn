@@ -498,8 +498,6 @@ class GroupSparseCovariance(BaseEstimator, CacheMixin):
     Jean Honorio and Dimitris Samaras.
     "Simultaneous and Group-Sparse Multi-Task Learning of Gaussian Graphical
     Models". http://arxiv.org/abs/1207.4255.
-
-
     """
 
     def __init__(self, alpha=0.1, tol=1e-3, max_iter=10, verbose=1,
@@ -656,8 +654,9 @@ def group_sparse_scores(precisions, n_samples, emp_covs, alpha,
 
     log_lik = 0
     for k in range(n_subjects):
-        log_lik += n_samples[k] * sklearn.covariance.log_likelihood(
-            emp_covs[..., k], precisions[..., k])
+        log_lik_k = - np.sum(emp_covs[...,  k] * precisions[..., k]) 
+        log_lik_k += fast_logdet(precisions[..., k])
+        log_lik += n_samples[k] * log_lik_k
 
     l2 = np.sqrt((precisions ** 2).sum(axis=-1))
     l12 = l2.sum() - np.diag(l2).sum()  # Do not count diagonal terms
@@ -686,7 +685,7 @@ def group_sparse_scores(precisions, n_samples, emp_covs, alpha,
         mask = alpha_max > alpha
         for k in range(A.shape[-1]):
             A[mask, k] *= alpha / alpha_max[mask]
-            # Set zeros on diagonals. Essential to get a always positive
+            # Set zeros on diagonals. Essential to get an always positive
             # duality gap.
             A[..., k].flat[::A.shape[0] + 1] = 0
 
